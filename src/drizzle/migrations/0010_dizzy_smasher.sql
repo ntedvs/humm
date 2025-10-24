@@ -1,0 +1,1 @@
+ALTER TABLE "upload" ALTER COLUMN "extension" DROP DEFAULT;

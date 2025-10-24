@@ -64,6 +64,20 @@
       "when": 1761246870487,
       "tag": "0008_broad_wong",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1761278933342,
+      "tag": "0009_noisy_omega_sentinel",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1761278947014,
+      "tag": "0010_dizzy_smasher",
+      "breakpoints": true
     }
   ]
 }

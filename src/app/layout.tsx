@@ -12,10 +12,12 @@ export const metadata: Metadata = {
 export default function Layout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={`flex min-h-screen flex-col ${inter.className}`}>
-        <header></header>
+      <body
+        className={`mx-auto flex min-h-screen max-w-6xl flex-col gap-4 p-4 ${inter.className}`}
+      >
+        {/* <header></header> */}
         <main className="grow">{children}</main>
-        <footer></footer>
+        {/* <footer></footer> */}
       </body>
     </html>
   )

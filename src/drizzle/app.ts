@@ -20,6 +20,7 @@ export const uploadTable = pgTable("upload", {
   id: uuid,
   name: text().notNull(),
   type: text({ enum: ["material", "work"] }).notNull(),
+  extension: text().notNull(),
 
   companyId: text()
     .notNull()

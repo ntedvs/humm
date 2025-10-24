@@ -1,18 +1,18 @@
 import { companyTable, uploadTable } from "@/drizzle/app"
-import { auth } from "@/lib/auth"
 import { db } from "@/lib/drizzle"
 import { storage } from "@/lib/storage"
+import { end } from "@/utils/client"
+import { protect } from "@/utils/server"
 import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { eq } from "drizzle-orm"
 import { fileTypeFromBuffer } from "file-type"
-import { headers } from "next/headers"
 import { notFound, redirect } from "next/navigation"
+import FileInput from "./file-input"
 
 type Props = { params: Promise<{ slug: string }> }
 
 export default async function Upload({ params }: Props) {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session) redirect("/")
+  const session = await protect()
 
   const { slug } = await params
 
@@ -23,8 +23,10 @@ export default async function Upload({ params }: Props) {
   if (!company) notFound()
 
   return (
-    <>
-      <h1>Upload</h1>
+    <div className="mx-auto max-w-md">
+      <h1 className="mb-6 text-3xl font-bold text-text">
+        Upload to {company.name}
+      </h1>
 
       <form
         action={async (fd) => {
@@ -33,18 +35,23 @@ export default async function Upload({ params }: Props) {
           const file = fd.get("file") as File
           const type = fd.get("type") as "material" | "work"
 
+          const buffer = Buffer.from(await file.arrayBuffer())
+          const detected = await fileTypeFromBuffer(buffer)
+
+          const [ext, mime] = detected
+            ? [detected.ext, detected.mime]
+            : [end(file.name), file.type]
+
           const [upload] = await db
             .insert(uploadTable)
             .values({
               name: file.name,
               type,
+              extension: ext,
               companyId: company.id,
               userId: session.user.id,
             })
             .returning()
-
-          const buffer = Buffer.from(await file.arrayBuffer())
-          const { ext, mime } = (await fileTypeFromBuffer(buffer))!
 
           await storage.send(
             new PutObjectCommand({
@@ -57,18 +64,25 @@ export default async function Upload({ params }: Props) {
 
           redirect("/" + slug)
         }}
+        className="card space-y-4"
       >
-        <label htmlFor="file">File</label>
-        <input id="file" name="file" type="file" required />
+        <div>
+          <label className="label">File</label>
+          <FileInput />
+        </div>
 
-        <label htmlFor="type">Type</label>
-        <select id="type" name="type">
-          <option value="material">Material</option>
-          <option value="work">Work</option>
-        </select>
+        <div>
+          <label htmlFor="type" className="label">
+            Type
+          </label>
+          <select id="type" name="type" className="select">
+            <option value="material">Material</option>
+            <option value="work">Work</option>
+          </select>
+        </div>
 
-        <button>Upload</button>
+        <button className="btn btn-primary w-full">Upload</button>
       </form>
-    </>
+    </div>
   )
 }

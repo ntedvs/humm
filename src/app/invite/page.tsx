@@ -1,14 +1,13 @@
 import { auth } from "@/lib/auth"
-import { headers } from "next/headers"
+import { protect } from "@/utils/server"
 import { redirect } from "next/navigation"
 
 export default async function Invite() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session || session.user.role !== "admin") redirect("/")
+  await protect(true)
 
   return (
-    <>
-      <h1>Invite</h1>
+    <div className="mx-auto max-w-md">
+      <h1 className="mb-6 text-3xl font-bold text-text">Invite User</h1>
 
       <form
         action={async (fd) => {
@@ -21,18 +20,31 @@ export default async function Invite() {
           await auth.api.createUser({ body: { email, password, name } })
           redirect("/")
         }}
+        className="card space-y-4"
       >
-        <label htmlFor="email">Email</label>
-        <input id="email" name="email" type="email" required />
+        <div>
+          <label htmlFor="email" className="label">
+            Email
+          </label>
+          <input id="email" name="email" type="email" required className="input" />
+        </div>
 
-        <label htmlFor="name">Name</label>
-        <input id="name" name="name" required />
+        <div>
+          <label htmlFor="name" className="label">
+            Name
+          </label>
+          <input id="name" name="name" required className="input" />
+        </div>
 
-        <label htmlFor="password">Password</label>
-        <input id="password" name="password" required />
+        <div>
+          <label htmlFor="password" className="label">
+            Password
+          </label>
+          <input id="password" name="password" required className="input" />
+        </div>
 
-        <button>Create</button>
+        <button className="btn btn-primary w-full">Create User</button>
       </form>
-    </>
+    </div>
   )
 }

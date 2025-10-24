@@ -1,0 +1,1 @@
+ALTER TABLE "upload" ADD COLUMN "extension" text DEFAULT 'pdf' NOT NULL;
