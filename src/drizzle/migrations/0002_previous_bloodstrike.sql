@@ -1,0 +1,2 @@
+ALTER TABLE "upload" ADD COLUMN "companyId" text;--> statement-breakpoint
+ALTER TABLE "upload" ADD CONSTRAINT "upload_companyId_company_id_fk" FOREIGN KEY ("companyId") REFERENCES "public"."company"("id") ON DELETE cascade ON UPDATE no action;

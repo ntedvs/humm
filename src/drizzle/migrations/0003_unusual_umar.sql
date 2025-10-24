@@ -1,0 +1,1 @@
+ALTER TABLE "upload" ALTER COLUMN "companyId" SET NOT NULL;
