@@ -1,10 +1,11 @@
 import { companyTable } from "@/drizzle/app"
 import { db } from "@/lib/drizzle"
-import { getRole, requireCompanyAccess } from "@/utils/permissions"
+import { canDelete, getRole, requireCompanyAccess } from "@/utils/permissions"
 import { protect } from "@/utils/server"
 import { eq } from "drizzle-orm"
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import DeleteButton from "./delete-button"
 import File from "./file"
 import SummaryModal from "./summary-modal"
 
@@ -56,40 +57,55 @@ export default async function Company({ params }: Props) {
           <p className="text-text-muted">No materials yet</p>
         ) : (
           <div className="rounded-lg border border-border bg-background">
-            {materials.map((upload, index) => (
-              <div
-                key={upload.id}
-                className={`grid grid-cols-3 items-center gap-4 px-6 py-4 transition-colors hover:bg-surface ${
-                  index !== materials.length - 1 ? "border-b border-border" : ""
-                }`}
-              >
-                <p className="font-medium text-text">{upload.name}</p>
-                <p className="text-sm text-text-muted">
-                  {upload.user ? upload.user.name : "Deleted"}
-                </p>
-                <div className="flex justify-end gap-2">
-                  {upload.extension === "pdf" && (
-                    <>
-                      {upload.summary && <SummaryModal upload={upload} />}
-                      {!upload.summary && !upload.error && (
-                        <span className="text-sm text-text-muted">
-                          Analyzing...
-                        </span>
-                      )}
-                      {upload.error && (
-                        <span
-                          className="text-sm text-red-500"
-                          title={upload.error}
-                        >
-                          Analysis failed
-                        </span>
-                      )}
-                    </>
-                  )}
-                  <File upload={upload} companySlug={company.slug} />
+            {materials.map(async (upload, index) => {
+              const canDeleteFile = await canDelete(
+                session.user.id,
+                company.id,
+                upload.userId,
+              )
+
+              return (
+                <div
+                  key={upload.id}
+                  className={`grid grid-cols-3 items-center gap-4 px-6 py-4 transition-colors hover:bg-surface ${
+                    index !== materials.length - 1 ? "border-b border-border" : ""
+                  }`}
+                >
+                  <p className="font-medium text-text">{upload.name}</p>
+                  <p className="text-sm text-text-muted">
+                    {upload.user ? upload.user.name : "Deleted"}
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    {upload.extension === "pdf" && (
+                      <>
+                        {upload.summary && <SummaryModal upload={upload} />}
+                        {!upload.summary && !upload.error && (
+                          <span className="text-sm text-text-muted">
+                            Analyzing...
+                          </span>
+                        )}
+                        {upload.error && (
+                          <span
+                            className="text-sm text-red-500"
+                            title={upload.error}
+                          >
+                            Analysis failed
+                          </span>
+                        )}
+                      </>
+                    )}
+                    <File upload={upload} companySlug={company.slug} />
+                    {canDeleteFile && (
+                      <DeleteButton
+                        uploadId={upload.id}
+                        uploadName={upload.name}
+                        companySlug={company.slug}
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
@@ -101,40 +117,55 @@ export default async function Company({ params }: Props) {
           <p className="text-text-muted">No work files yet</p>
         ) : (
           <div className="rounded-lg border border-border bg-background">
-            {work.map((upload, index) => (
-              <div
-                key={upload.id}
-                className={`grid grid-cols-3 items-center gap-4 px-6 py-4 transition-colors hover:bg-surface ${
-                  index !== work.length - 1 ? "border-b border-border" : ""
-                }`}
-              >
-                <p className="font-medium text-text">{upload.name}</p>
-                <p className="text-sm text-text-muted">
-                  {upload.user ? upload.user.name : "Deleted"}
-                </p>
-                <div className="flex justify-end gap-2">
-                  {upload.extension === "pdf" && (
-                    <>
-                      {upload.summary && <SummaryModal upload={upload} />}
-                      {!upload.summary && !upload.error && (
-                        <span className="text-sm text-text-muted">
-                          Analyzing...
-                        </span>
-                      )}
-                      {upload.error && (
-                        <span
-                          className="text-sm text-red-500"
-                          title={upload.error}
-                        >
-                          Analysis failed
-                        </span>
-                      )}
-                    </>
-                  )}
-                  <File upload={upload} companySlug={company.slug} />
+            {work.map(async (upload, index) => {
+              const canDeleteFile = await canDelete(
+                session.user.id,
+                company.id,
+                upload.userId,
+              )
+
+              return (
+                <div
+                  key={upload.id}
+                  className={`grid grid-cols-3 items-center gap-4 px-6 py-4 transition-colors hover:bg-surface ${
+                    index !== work.length - 1 ? "border-b border-border" : ""
+                  }`}
+                >
+                  <p className="font-medium text-text">{upload.name}</p>
+                  <p className="text-sm text-text-muted">
+                    {upload.user ? upload.user.name : "Deleted"}
+                  </p>
+                  <div className="flex justify-end gap-2">
+                    {upload.extension === "pdf" && (
+                      <>
+                        {upload.summary && <SummaryModal upload={upload} />}
+                        {!upload.summary && !upload.error && (
+                          <span className="text-sm text-text-muted">
+                            Analyzing...
+                          </span>
+                        )}
+                        {upload.error && (
+                          <span
+                            className="text-sm text-red-500"
+                            title={upload.error}
+                          >
+                            Analysis failed
+                          </span>
+                        )}
+                      </>
+                    )}
+                    <File upload={upload} companySlug={company.slug} />
+                    {canDeleteFile && (
+                      <DeleteButton
+                        uploadId={upload.id}
+                        uploadName={upload.name}
+                        companySlug={company.slug}
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         )}
       </section>
