@@ -26,7 +26,13 @@ export default async function Invite() {
           <label htmlFor="email" className="label">
             Email
           </label>
-          <input id="email" name="email" type="email" required className="input" />
+          <input
+            id="email"
+            name="email"
+            type="email"
+            required
+            className="input"
+          />
         </div>
 
         <div>

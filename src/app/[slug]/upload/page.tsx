@@ -1,7 +1,9 @@
 import { companyTable, uploadTable } from "@/drizzle/app"
+import { analyzePitchDeck } from "@/lib/ai"
 import { db } from "@/lib/drizzle"
 import { storage } from "@/lib/storage"
 import { end } from "@/utils/client"
+import { requireCompanyAccess } from "@/utils/permissions"
 import { protect } from "@/utils/server"
 import { PutObjectCommand } from "@aws-sdk/client-s3"
 import { eq } from "drizzle-orm"
@@ -22,6 +24,8 @@ export default async function Upload({ params }: Props) {
 
   if (!company) notFound()
 
+  await requireCompanyAccess(session.user.id, company.id, "editor")
+
   return (
     <div className="mx-auto max-w-md">
       <h1 className="mb-6 text-3xl font-bold text-text">
@@ -31,6 +35,9 @@ export default async function Upload({ params }: Props) {
       <form
         action={async (fd) => {
           "use server"
+
+          const session = await protect()
+          await requireCompanyAccess(session.user.id, company.id, "editor")
 
           const file = fd.get("file") as File
           const type = fd.get("type") as "material" | "work"
@@ -61,6 +68,25 @@ export default async function Upload({ params }: Props) {
               ContentType: mime,
             }),
           )
+
+          if (ext === "pdf") {
+            try {
+              const summary = await analyzePitchDeck(buffer, file.name)
+
+              await db
+                .update(uploadTable)
+                .set({ summary, processed: new Date() })
+                .where(eq(uploadTable.id, upload.id))
+            } catch (error) {
+              await db
+                .update(uploadTable)
+                .set({
+                  error:
+                    error instanceof Error ? error.message : "Analysis failed",
+                })
+                .where(eq(uploadTable.id, upload.id))
+            }
+          }
 
           redirect("/" + slug)
         }}

@@ -1,11 +1,11 @@
-import { companyTable } from "@/drizzle/app"
+import { companyTable, relationTable } from "@/drizzle/app"
 import { db } from "@/lib/drizzle"
 import { protect } from "@/utils/server"
 import slugify from "@sindresorhus/slugify"
 import { redirect } from "next/navigation"
 
 export default async function New() {
-  await protect()
+  await protect(true)
 
   return (
     <div className="mx-auto max-w-md">
@@ -15,12 +15,19 @@ export default async function New() {
         action={async (fd) => {
           "use server"
 
+          const session = await protect(true)
           const name = fd.get("name") as string
 
           const [company] = await db
             .insert(companyTable)
             .values({ slug: slugify(name), name })
             .returning()
+
+          await db.insert(relationTable).values({
+            companyId: company.id,
+            userId: session.user.id,
+            role: "owner",
+          })
 
           redirect("/" + company.slug)
         }}

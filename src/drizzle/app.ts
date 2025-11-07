@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm"
-import { pgTable, text } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, unique } from "drizzle-orm/pg-core"
 import { userTable } from "./auth"
 
 const uuid = text()
@@ -14,6 +14,7 @@ export const companyTable = pgTable("company", {
 
 export const companyRelations = relations(companyTable, ({ many }) => ({
   uploads: many(uploadTable),
+  members: many(relationTable),
 }))
 
 export const uploadTable = pgTable("upload", {
@@ -26,6 +27,10 @@ export const uploadTable = pgTable("upload", {
     .notNull()
     .references(() => companyTable.id, { onDelete: "cascade" }),
   userId: text().references(() => userTable.id, { onDelete: "set null" }),
+
+  summary: text(),
+  processed: timestamp(),
+  error: text(),
 })
 
 export const uploadRelations = relations(uploadTable, ({ one }) => ({
@@ -39,4 +44,35 @@ export const uploadRelations = relations(uploadTable, ({ one }) => ({
   }),
 }))
 
+export const relationTable = pgTable(
+  "relation",
+  {
+    id: uuid,
+    role: text({ enum: ["owner", "editor", "viewer"] })
+      .notNull()
+      .default("viewer"),
+    joined: timestamp().notNull().defaultNow(),
+
+    companyId: text()
+      .notNull()
+      .references(() => companyTable.id, { onDelete: "cascade" }),
+    userId: text()
+      .notNull()
+      .references(() => userTable.id, { onDelete: "cascade" }),
+  },
+  (table) => [unique().on(table.companyId, table.userId)],
+)
+
+export const relationRelations = relations(relationTable, ({ one }) => ({
+  company: one(companyTable, {
+    fields: [relationTable.companyId],
+    references: [companyTable.id],
+  }),
+  user: one(userTable, {
+    fields: [relationTable.userId],
+    references: [userTable.id],
+  }),
+}))
+
 export type Upload = typeof uploadTable.$inferSelect
+export type Relation = typeof relationTable.$inferSelect

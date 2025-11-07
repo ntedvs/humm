@@ -1,15 +1,17 @@
 import { companyTable } from "@/drizzle/app"
 import { db } from "@/lib/drizzle"
+import { getRole, requireCompanyAccess } from "@/utils/permissions"
 import { protect } from "@/utils/server"
 import { eq } from "drizzle-orm"
 import Link from "next/link"
 import { notFound } from "next/navigation"
 import File from "./file"
+import SummaryModal from "./summary-modal"
 
 type Props = { params: Promise<{ slug: string }> }
 
 export default async function Company({ params }: Props) {
-  await protect()
+  const session = await protect()
 
   const { slug } = await params
 
@@ -20,17 +22,31 @@ export default async function Company({ params }: Props) {
 
   if (!company) notFound()
 
-  const materials = company.uploads.filter((upload) => upload.type === "material")
+  await requireCompanyAccess(session.user.id, company.id)
+  const role = await getRole(session.user.id, company.id)
+
+  const materials = company.uploads.filter(
+    (upload) => upload.type === "material",
+  )
   const work = company.uploads.filter((upload) => upload.type === "work")
 
   return (
     <div>
-      {/* Header */}
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-text">{company.name}</h1>
-        <Link href={"/" + company.slug + "/upload"} className="btn btn-primary">
-          Upload
-        </Link>
+        <div className="flex gap-2">
+          {role === "owner" && (
+            <Link
+              href={`/${company.slug}/members`}
+              className="btn btn-secondary"
+            >
+              Team
+            </Link>
+          )}
+          <Link href={`/${company.slug}/upload`} className="btn btn-primary">
+            Upload
+          </Link>
+        </div>
       </div>
 
       {/* Materials Section */}
@@ -51,7 +67,25 @@ export default async function Company({ params }: Props) {
                 <p className="text-sm text-text-muted">
                   {upload.user ? upload.user.name : "Deleted"}
                 </p>
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  {upload.extension === "pdf" && (
+                    <>
+                      {upload.summary && <SummaryModal upload={upload} />}
+                      {!upload.summary && !upload.error && (
+                        <span className="text-sm text-text-muted">
+                          Analyzing...
+                        </span>
+                      )}
+                      {upload.error && (
+                        <span
+                          className="text-sm text-red-500"
+                          title={upload.error}
+                        >
+                          Analysis failed
+                        </span>
+                      )}
+                    </>
+                  )}
                   <File upload={upload} companySlug={company.slug} />
                 </div>
               </div>
@@ -78,7 +112,25 @@ export default async function Company({ params }: Props) {
                 <p className="text-sm text-text-muted">
                   {upload.user ? upload.user.name : "Deleted"}
                 </p>
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2">
+                  {upload.extension === "pdf" && (
+                    <>
+                      {upload.summary && <SummaryModal upload={upload} />}
+                      {!upload.summary && !upload.error && (
+                        <span className="text-sm text-text-muted">
+                          Analyzing...
+                        </span>
+                      )}
+                      {upload.error && (
+                        <span
+                          className="text-sm text-red-500"
+                          title={upload.error}
+                        >
+                          Analysis failed
+                        </span>
+                      )}
+                    </>
+                  )}
                   <File upload={upload} companySlug={company.slug} />
                 </div>
               </div>
