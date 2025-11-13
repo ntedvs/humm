@@ -18,9 +18,14 @@ export default async function Home() {
       <div className="mb-8 flex items-center justify-between">
         <h1 className="text-3xl font-bold text-text">My Companies</h1>
         {session.user.role === "admin" && (
-          <Link href="/new" className="btn btn-primary">
-            Create Company
-          </Link>
+          <div className="flex gap-2">
+            <Link href="/admin" className="btn">
+              Manage Users
+            </Link>
+            <Link href="/new" className="btn btn-primary">
+              Create Company
+            </Link>
+          </div>
         )}
       </div>
 

@@ -69,23 +69,26 @@ export default async function Upload({ params }: Props) {
             }),
           )
 
+          // Run PDF analysis async after redirect
           if (ext === "pdf") {
-            try {
-              const summary = await analyzePitchDeck(buffer, file.name)
-
-              await db
-                .update(uploadTable)
-                .set({ summary, processed: new Date() })
-                .where(eq(uploadTable.id, upload.id))
-            } catch (error) {
-              await db
-                .update(uploadTable)
-                .set({
-                  error:
-                    error instanceof Error ? error.message : "Analysis failed",
-                })
-                .where(eq(uploadTable.id, upload.id))
-            }
+            analyzePitchDeck(buffer, file.name)
+              .then((summary) => {
+                return db
+                  .update(uploadTable)
+                  .set({ summary, processed: new Date() })
+                  .where(eq(uploadTable.id, upload.id))
+              })
+              .catch((error) => {
+                return db
+                  .update(uploadTable)
+                  .set({
+                    error:
+                      error instanceof Error
+                        ? error.message
+                        : "Analysis failed",
+                  })
+                  .where(eq(uploadTable.id, upload.id))
+              })
           }
 
           redirect("/" + slug)

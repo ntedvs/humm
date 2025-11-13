@@ -27,6 +27,8 @@ Write one paragraph covering the funding ask, valuation, current revenue, use of
 - If information is missing, write "Not mentioned in deck" within the paragraph
 - Be concise and analytical
 - Total output should fit on one page
+- Do not use formatting symbols, tables, bullet points, or other structured formatting elements
+- Never use em dashes (—). Use commas, periods, or regular hyphens (-) instead
 
 Analyze the document now:`
 
