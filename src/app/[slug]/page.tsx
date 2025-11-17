@@ -4,7 +4,9 @@ import { canDelete, getRole, requireCompanyAccess } from "@/utils/permissions"
 import { protect } from "@/utils/server"
 import { eq } from "drizzle-orm"
 import Link from "next/link"
-import { notFound } from "next/navigation"
+import { notFound, redirect } from "next/navigation"
+import { revalidatePath } from "next/cache"
+import CompanyInfo from "./company-info"
 import DeleteButton from "./delete-button"
 import File from "./file"
 import SummaryModal from "./summary-modal"
@@ -49,6 +51,41 @@ export default async function Company({ params }: Props) {
           </Link>
         </div>
       </div>
+
+      <CompanyInfo
+        company={company}
+        isOwner={role === "owner"}
+        updateAction={async (formData) => {
+          "use server"
+
+          const session = await protect()
+          await requireCompanyAccess(session.user.id, company.id, "owner")
+
+          const description = formData.get("description") as string
+          const stage = formData.get("stage") as string
+          const valuationStr = formData.get("valuation") as string
+          const askingAmountStr = formData.get("askingAmount") as string
+
+          const updates: {
+            description?: string | null
+            stage?: string | null
+            valuation?: string | null
+            askingAmount?: string | null
+          } = {}
+
+          updates.description = description.trim() || null
+          updates.stage = stage.trim() || null
+          updates.valuation = valuationStr.trim() || null
+          updates.askingAmount = askingAmountStr.trim() || null
+
+          await db
+            .update(companyTable)
+            .set(updates)
+            .where(eq(companyTable.id, company.id))
+
+          revalidatePath(`/${company.slug}`)
+        }}
+      />
 
       {/* Materials Section */}
       <section className="mb-12">

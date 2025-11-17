@@ -1,5 +1,5 @@
 import { relations, sql } from "drizzle-orm"
-import { pgTable, text, timestamp, unique } from "drizzle-orm/pg-core"
+import { pgTable, text, timestamp, unique, numeric } from "drizzle-orm/pg-core"
 import { userTable } from "./auth"
 
 const uuid = text()
@@ -10,6 +10,10 @@ export const companyTable = pgTable("company", {
   id: uuid,
   slug: text().notNull().unique(),
   name: text().notNull(),
+  description: text(),
+  stage: text(),
+  valuation: numeric(),
+  askingAmount: numeric(),
 })
 
 export const companyRelations = relations(companyTable, ({ many }) => ({

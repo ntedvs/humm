@@ -70,13 +70,43 @@ export default async function Upload({ params }: Props) {
           )
 
           // Run PDF analysis async after redirect
-          if (ext === "pdf") {
+          if (ext === "pdf" && type === "material") {
             analyzePitchDeck(buffer, file.name)
-              .then((summary) => {
-                return db
+              .then(async (result) => {
+                // Update upload with summary
+                await db
                   .update(uploadTable)
-                  .set({ summary, processed: new Date() })
+                  .set({ summary: result.summary, processed: new Date() })
                   .where(eq(uploadTable.id, upload.id))
+
+                // Conditionally update company fields (only if currently null)
+                const updates: {
+                  description?: string
+                  stage?: string
+                  valuation?: string
+                  askingAmount?: string
+                } = {}
+
+                if (company.description === null && result.description !== null) {
+                  updates.description = result.description
+                }
+                if (company.stage === null && result.stage !== null) {
+                  updates.stage = result.stage
+                }
+                if (company.valuation === null && result.valuation !== null) {
+                  updates.valuation = result.valuation
+                }
+                if (company.askingAmount === null && result.askingAmount !== null) {
+                  updates.askingAmount = result.askingAmount
+                }
+
+                // Only update company if there are fields to update
+                if (Object.keys(updates).length > 0) {
+                  await db
+                    .update(companyTable)
+                    .set(updates)
+                    .where(eq(companyTable.id, company.id))
+                }
               })
               .catch((error) => {
                 return db
