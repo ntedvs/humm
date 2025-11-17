@@ -20,7 +20,7 @@ export default function RoleSelect({ userId, currentRole }: Props) {
         router.refresh()
       }}
       disabled={isAdmin}
-      className="select text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+      className="select"
     >
       <option value="user">User</option>
       <option value="admin">Admin</option>

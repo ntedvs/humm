@@ -67,3 +67,5 @@ export const verificationTable = pgTable("verification", {
     .defaultNow()
     .$onUpdate(() => new Date()),
 })
+
+export type User = typeof userTable.$inferSelect

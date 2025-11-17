@@ -21,10 +21,7 @@ export async function updateUserRole(userId: string, role: string) {
     throw new Error("Cannot demote admin users")
   }
 
-  await db
-    .update(userTable)
-    .set({ role })
-    .where(eq(userTable.id, userId))
+  await db.update(userTable).set({ role }).where(eq(userTable.id, userId))
 
   revalidatePath("/admin")
 }

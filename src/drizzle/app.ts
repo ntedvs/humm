@@ -1,5 +1,12 @@
 import { relations, sql } from "drizzle-orm"
-import { pgTable, text, timestamp, unique, numeric } from "drizzle-orm/pg-core"
+import {
+  jsonb,
+  numeric,
+  pgTable,
+  text,
+  timestamp,
+  unique,
+} from "drizzle-orm/pg-core"
 import { userTable } from "./auth"
 
 const uuid = text()
@@ -35,6 +42,7 @@ export const uploadTable = pgTable("upload", {
   summary: text(),
   processed: timestamp(),
   error: text(),
+  createdAt: timestamp().notNull().defaultNow(),
 })
 
 export const uploadRelations = relations(uploadTable, ({ one }) => ({
@@ -78,5 +86,44 @@ export const relationRelations = relations(relationTable, ({ one }) => ({
   }),
 }))
 
+export const activityTable = pgTable("activity", {
+  id: uuid,
+  type: text({
+    enum: [
+      "file_upload",
+      "file_delete",
+      "member_add",
+      "member_remove",
+      "role_change",
+    ],
+  }).notNull(),
+  companyId: text()
+    .notNull()
+    .references(() => companyTable.id, { onDelete: "cascade" }),
+  userId: text().references(() => userTable.id, { onDelete: "set null" }),
+  metadata: jsonb().$type<{
+    fileName?: string
+    fileType?: string
+    targetUserName?: string
+    targetUserEmail?: string
+    oldRole?: string
+    newRole?: string
+    role?: string
+  }>(),
+  createdAt: timestamp().notNull().defaultNow(),
+})
+
+export const activityRelations = relations(activityTable, ({ one }) => ({
+  company: one(companyTable, {
+    fields: [activityTable.companyId],
+    references: [companyTable.id],
+  }),
+  user: one(userTable, {
+    fields: [activityTable.userId],
+    references: [userTable.id],
+  }),
+}))
+
 export type Upload = typeof uploadTable.$inferSelect
 export type Relation = typeof relationTable.$inferSelect
+export type Activity = typeof activityTable.$inferSelect

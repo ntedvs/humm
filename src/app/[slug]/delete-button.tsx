@@ -1,6 +1,5 @@
 "use client"
 
-import { Loader2, Trash2 } from "lucide-react"
 import { useState } from "react"
 import { deleteFile } from "./actions"
 
@@ -18,9 +17,7 @@ export default function DeleteButton({
   const [deleting, setDeleting] = useState(false)
 
   const handleDelete = async () => {
-    const confirmed = confirm(
-      `Delete "${uploadName}"? This cannot be undone.`,
-    )
+    const confirmed = confirm(`Delete "${uploadName}"? This cannot be undone.`)
 
     if (!confirmed) return
 
@@ -42,15 +39,11 @@ export default function DeleteButton({
     <button
       onClick={handleDelete}
       disabled={deleting}
-      className="rounded-md p-2 text-text-muted transition-colors hover:bg-red-50 hover:text-red-600 disabled:cursor-not-allowed disabled:opacity-50"
       aria-label={`Delete ${uploadName}`}
       title="Delete file"
+      className="btn btn-danger btn-sm"
     >
-      {deleting ? (
-        <Loader2 className="h-5 w-5 animate-spin" />
-      ) : (
-        <Trash2 className="h-5 w-5" />
-      )}
+      {deleting ? "Deleting..." : "Delete"}
     </button>
   )
 }

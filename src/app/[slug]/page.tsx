@@ -1,15 +1,14 @@
-import { companyTable } from "@/drizzle/app"
+import { companyTable, uploadTable } from "@/drizzle/app"
 import { db } from "@/lib/drizzle"
 import { canDelete, getRole, requireCompanyAccess } from "@/utils/permissions"
 import { protect } from "@/utils/server"
-import { eq } from "drizzle-orm"
-import Link from "next/link"
-import { notFound, redirect } from "next/navigation"
+import { desc, eq } from "drizzle-orm"
 import { revalidatePath } from "next/cache"
+import Link from "next/link"
+import { notFound } from "next/navigation"
+import ActivityFeed from "./activity-feed"
 import CompanyInfo from "./company-info"
-import DeleteButton from "./delete-button"
-import File from "./file"
-import SummaryModal from "./summary-modal"
+import FilterableUploads from "./filterable-uploads"
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -20,7 +19,12 @@ export default async function Company({ params }: Props) {
 
   const company = await db.query.companyTable.findFirst({
     where: eq(companyTable.slug, slug),
-    with: { uploads: { with: { user: true } } },
+    with: {
+      uploads: {
+        with: { user: true },
+        orderBy: desc(uploadTable.createdAt),
+      },
+    },
   })
 
   if (!company) notFound()
@@ -28,184 +32,117 @@ export default async function Company({ params }: Props) {
   await requireCompanyAccess(session.user.id, company.id)
   const role = await getRole(session.user.id, company.id)
 
-  const materials = company.uploads.filter(
-    (upload) => upload.type === "material",
-  )
-  const work = company.uploads.filter((upload) => upload.type === "work")
+  // Build canDelete map for all uploads
+  const canDeleteMap: Record<string, boolean> = {}
+  for (const upload of company.uploads) {
+    canDeleteMap[upload.id] = await canDelete(
+      session.user.id,
+      company.id,
+      upload.userId,
+    )
+  }
 
   return (
-    <div>
-      <div className="mb-8 flex items-center justify-between">
-        <h1 className="text-3xl font-bold text-text">{company.name}</h1>
-        <div className="flex gap-2">
-          {role === "owner" && (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="border-b border-gray-200 bg-white">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+          <div className="flex items-center gap-6">
             <Link
-              href={`/${company.slug}/members`}
-              className="btn btn-secondary"
+              href="/"
+              className="text-sm text-gray-600 hover:text-gray-900"
             >
-              Team
+              ← Back
             </Link>
-          )}
-          <Link href={`/${company.slug}/upload`} className="btn btn-primary">
-            Upload
-          </Link>
+            <h1 className="text-2xl font-semibold text-gray-900">
+              {company.name}
+            </h1>
+          </div>
+          <nav className="flex items-center gap-3">
+            {role === "owner" && (
+              <Link
+                href={`/${company.slug}/members`}
+                className="btn btn-ghost btn-sm"
+              >
+                Team
+              </Link>
+            )}
+            <Link
+              href={`/${company.slug}/upload`}
+              className="btn btn-primary btn-sm"
+            >
+              Upload
+            </Link>
+          </nav>
         </div>
-      </div>
+      </header>
 
-      <CompanyInfo
-        company={company}
-        isOwner={role === "owner"}
-        updateAction={async (formData) => {
-          "use server"
+      {/* Main Content */}
+      <main className="mx-auto max-w-7xl px-6 py-8">
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+          {/* Left Column - Company Info & Activity */}
+          <div className="space-y-6 lg:col-span-1">
+            <CompanyInfo
+              company={company}
+              isOwner={role === "owner"}
+              updateAction={async (formData) => {
+                "use server"
 
-          const session = await protect()
-          await requireCompanyAccess(session.user.id, company.id, "owner")
+                const session = await protect()
+                await requireCompanyAccess(session.user.id, company.id, "owner")
 
-          const description = formData.get("description") as string
-          const stage = formData.get("stage") as string
-          const valuationStr = formData.get("valuation") as string
-          const askingAmountStr = formData.get("askingAmount") as string
+                const description = formData.get("description") as string
+                const stage = formData.get("stage") as string
+                const valuationStr = formData.get("valuation") as string
+                const askingAmountStr = formData.get("askingAmount") as string
 
-          const updates: {
-            description?: string | null
-            stage?: string | null
-            valuation?: string | null
-            askingAmount?: string | null
-          } = {}
+                const updates: {
+                  description?: string | null
+                  stage?: string | null
+                  valuation?: string | null
+                  askingAmount?: string | null
+                } = {}
 
-          updates.description = description.trim() || null
-          updates.stage = stage.trim() || null
-          updates.valuation = valuationStr.trim() || null
-          updates.askingAmount = askingAmountStr.trim() || null
+                updates.description = description.trim() || null
+                updates.stage = stage.trim() || null
+                updates.valuation = valuationStr.trim() || null
+                updates.askingAmount = askingAmountStr.trim() || null
 
-          await db
-            .update(companyTable)
-            .set(updates)
-            .where(eq(companyTable.id, company.id))
+                await db
+                  .update(companyTable)
+                  .set(updates)
+                  .where(eq(companyTable.id, company.id))
 
-          revalidatePath(`/${company.slug}`)
-        }}
-      />
+                revalidatePath(`/${company.slug}`)
+              }}
+            />
 
-      {/* Materials Section */}
-      <section className="mb-12">
-        <h2 className="mb-4 text-xl font-semibold text-text">Materials</h2>
-        {materials.length === 0 ? (
-          <p className="text-text-muted">No materials yet</p>
-        ) : (
-          <div className="rounded-lg border border-border bg-background">
-            {materials.map(async (upload, index) => {
-              const canDeleteFile = await canDelete(
-                session.user.id,
-                company.id,
-                upload.userId,
-              )
-
-              return (
-                <div
-                  key={upload.id}
-                  className={`grid grid-cols-3 items-center gap-4 px-6 py-4 transition-colors hover:bg-surface ${
-                    index !== materials.length - 1 ? "border-b border-border" : ""
-                  }`}
-                >
-                  <p className="font-medium text-text">{upload.name}</p>
-                  <p className="text-sm text-text-muted">
-                    {upload.user ? upload.user.name : "Deleted"}
-                  </p>
-                  <div className="flex justify-end gap-2">
-                    {upload.extension === "pdf" && (
-                      <>
-                        {upload.summary && <SummaryModal upload={upload} />}
-                        {!upload.summary && !upload.error && (
-                          <span className="text-sm text-text-muted">
-                            Analyzing...
-                          </span>
-                        )}
-                        {upload.error && (
-                          <span
-                            className="text-sm text-red-500"
-                            title={upload.error}
-                          >
-                            Analysis failed
-                          </span>
-                        )}
-                      </>
-                    )}
-                    <File upload={upload} companySlug={company.slug} />
-                    {canDeleteFile && (
-                      <DeleteButton
-                        uploadId={upload.id}
-                        uploadName={upload.name}
-                        companySlug={company.slug}
-                      />
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+            {role === "owner" && (
+              <div className="card">
+                <h2 className="mb-4 text-lg font-semibold text-gray-900">
+                  Recent Activity
+                </h2>
+                <ActivityFeed companyId={company.id} limit={10} />
+              </div>
+            )}
           </div>
-        )}
-      </section>
 
-      {/* Work Section */}
-      <section>
-        <h2 className="mb-4 text-xl font-semibold text-text">Work</h2>
-        {work.length === 0 ? (
-          <p className="text-text-muted">No work files yet</p>
-        ) : (
-          <div className="rounded-lg border border-border bg-background">
-            {work.map(async (upload, index) => {
-              const canDeleteFile = await canDelete(
-                session.user.id,
-                company.id,
-                upload.userId,
-              )
-
-              return (
-                <div
-                  key={upload.id}
-                  className={`grid grid-cols-3 items-center gap-4 px-6 py-4 transition-colors hover:bg-surface ${
-                    index !== work.length - 1 ? "border-b border-border" : ""
-                  }`}
-                >
-                  <p className="font-medium text-text">{upload.name}</p>
-                  <p className="text-sm text-text-muted">
-                    {upload.user ? upload.user.name : "Deleted"}
-                  </p>
-                  <div className="flex justify-end gap-2">
-                    {upload.extension === "pdf" && (
-                      <>
-                        {upload.summary && <SummaryModal upload={upload} />}
-                        {!upload.summary && !upload.error && (
-                          <span className="text-sm text-text-muted">
-                            Analyzing...
-                          </span>
-                        )}
-                        {upload.error && (
-                          <span
-                            className="text-sm text-red-500"
-                            title={upload.error}
-                          >
-                            Analysis failed
-                          </span>
-                        )}
-                      </>
-                    )}
-                    <File upload={upload} companySlug={company.slug} />
-                    {canDeleteFile && (
-                      <DeleteButton
-                        uploadId={upload.id}
-                        uploadName={upload.name}
-                        companySlug={company.slug}
-                      />
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+          {/* Right Column - Files */}
+          <div className="lg:col-span-2">
+            <div className="card">
+              <h2 className="mb-6 text-lg font-semibold text-gray-900">
+                Files
+              </h2>
+              <FilterableUploads
+                uploads={company.uploads}
+                companySlug={company.slug}
+                userId={session.user.id}
+                canDeleteMap={canDeleteMap}
+              />
+            </div>
           </div>
-        )}
-      </section>
+        </div>
+      </main>
     </div>
   )
 }

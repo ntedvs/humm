@@ -89,7 +89,13 @@ export const analyzePitchDeck = async (
                   "Amount of funding requested as a number, or null if not mentioned",
               },
             },
-            required: ["summary", "description", "stage", "valuation", "askingAmount"],
+            required: [
+              "summary",
+              "description",
+              "stage",
+              "valuation",
+              "askingAmount",
+            ],
           },
         },
       ],
@@ -133,7 +139,8 @@ export const analyzePitchDeck = async (
       description: input.description,
       stage: input.stage,
       valuation: input.valuation !== null ? String(input.valuation) : null,
-      askingAmount: input.askingAmount !== null ? String(input.askingAmount) : null,
+      askingAmount:
+        input.askingAmount !== null ? String(input.askingAmount) : null,
     }
   } catch (error) {
     console.error("AI analysis failed:", error)

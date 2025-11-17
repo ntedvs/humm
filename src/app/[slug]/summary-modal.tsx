@@ -1,7 +1,6 @@
 "use client"
 
 import { Upload } from "@/drizzle/app"
-import { X } from "lucide-react"
 import { useState } from "react"
 import ReactMarkdown from "react-markdown"
 
@@ -14,41 +13,48 @@ export default function SummaryModal({ upload }: Props) {
 
   return (
     <>
-      <button onClick={() => setOpen(true)} className="btn btn-secondary">
+      <button
+        onClick={() => setOpen(true)}
+        className="btn btn-secondary btn-sm"
+      >
         View Summary
       </button>
 
       {open && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
           onClick={() => setOpen(false)}
+          className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-6"
         >
           <div
-            className="card max-h-[80vh] w-full max-w-3xl overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
+            className="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-xl bg-white shadow-xl"
           >
-            <div className="mb-4 flex items-center justify-between border-b border-border pb-4">
+            <div className="sticky top-0 flex items-center justify-between border-b border-gray-200 bg-white px-6 py-4">
               <div>
-                <h2 className="text-xl font-bold text-text">AI Analysis</h2>
-                <p className="text-sm text-text-muted">{upload.name}</p>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  AI Analysis
+                </h2>
+                <p className="text-sm text-gray-600">{upload.name}</p>
               </div>
               <button
                 onClick={() => setOpen(false)}
-                className="rounded p-2 hover:bg-surface"
+                className="btn btn-ghost btn-sm"
               >
-                <X className="h-5 w-5" />
+                Close
               </button>
             </div>
 
-            <div className="prose prose-sm max-w-none text-text">
-              <ReactMarkdown>{upload.summary}</ReactMarkdown>
-            </div>
+            <div className="px-6 py-6">
+              <div className="prose prose-sm max-w-none">
+                <ReactMarkdown>{upload.summary}</ReactMarkdown>
+              </div>
 
-            {upload.processed && (
-              <p className="mt-4 border-t border-border pt-4 text-xs text-text-muted">
-                Generated on {new Date(upload.processed).toLocaleString()}
-              </p>
-            )}
+              {upload.processed && (
+                <p className="mt-6 border-t border-gray-200 pt-6 text-xs text-gray-500">
+                  Generated on {new Date(upload.processed).toLocaleString()}
+                </p>
+              )}
+            </div>
           </div>
         </div>
       )}
