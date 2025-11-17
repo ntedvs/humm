@@ -23,7 +23,7 @@ export default function SummaryModal({ upload }: Props) {
       {open && (
         <div
           onClick={() => setOpen(false)}
-          className="bg-opacity-50 fixed inset-0 z-50 flex items-center justify-center bg-black p-6"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-6"
         >
           <div
             onClick={(e) => e.stopPropagation()}
